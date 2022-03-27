@@ -8,7 +8,7 @@ use TwitterNoAuth\Twitter;
 include_once __DIR__ . "/vendor/autoload.php";
 
 #$path = "/fudz/feed/boing.world/@pre.rss";
-$path = "/fudz/twitteru/revpriest";
+$path = "/fudz/twitteru/seanmcarroll";
 
 if(isset($_SERVER['REQUEST_URI'])){
   $path = $_SERVER['REQUEST_URI'];
@@ -159,34 +159,39 @@ function processTwitterUser($user){
 						$text = preg_replace("|".$url['url']."|","<a href=\"".$url['expanded_url']."\">".$url['expanded_url']."</a>",$text);
 						if($previewtext==""){
 							$previewUrl = $url['expanded_url'];
-						  $info = Embed::create($previewUrl);
 							$some=false;
-							$ptext = "<div style=\"max-width: 20em; max-height: 5em;border:1px solid black;border-radius:0.5em;float:right;\">";
-							if($info->image){
-								$some=true;
-								$ptext.="<img src=\"".$info->image."\" style=\"max-width:100%;max-height:100%\" />";
-							}
-							if($info->description){
-								$some=true;
-								$ptext.="<span style=\"\" >".$info->description."</span>";
-							}
-							if($info->code){
-								$some=true;
-								$code = $info->code;
-								//Need to remove any <script> tags... Probably more than that really...
-								$dom = new \DOMDocument();
-								$dom->loadHTML($code,LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
-								foreach (iterator_to_array($dom->getElementsByTagName("script")) as $item) {
-										$item->parentNode->removeChild($item);
+							try{
+						    $info = Embed::create($previewUrl);
+								$ptext = "<div style=\"max-width: 20em; max-height: 5em;border:1px solid black;border-radius:0.5em;float:right;\">";
+								if($info->image){
+									$some=true;
+									$ptext.="<img src=\"".$info->image."\" style=\"max-width:100%;max-height:100%\" />";
 								}
-								$code = $dom->saveHTML();
-								$ptext.=$code;
+								if($info->description){
+									$some=true;
+									$ptext.="<span style=\"\" >".$info->description."</span>";
+								}
+								if($info->code){
+									$some=true;
+									$code = $info->code;
+									//Need to remove any <script> tags... Probably more than that really...
+									$dom = new \DOMDocument();
+									$dom->loadHTML($code,LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+									foreach (iterator_to_array($dom->getElementsByTagName("script")) as $item) {
+											$item->parentNode->removeChild($item);
+									}
+									$code = $dom->saveHTML();
+									$ptext.=$code;
+								}
+								if($info->author){
+									$some=true;
+									$ptext.=" <span style=\"\" >(".$info->author.")</span>";
+								}
+								$ptext.="</div>";
+							}catch(\Exception $e){
+								//Might be dead or blocked server.
+								$some=false;
 							}
-							if($info->author){
-								$some=true;
-								$ptext.=" <span style=\"\" >(".$info->author.")</span>";
-							}
-							$ptext.="</div>";
 
 							if($some==true){
 								$previewtext=$ptext;
