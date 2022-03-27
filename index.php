@@ -8,7 +8,7 @@ use TwitterNoAuth\Twitter;
 include_once __DIR__ . "/vendor/autoload.php";
 
 #$path = "/fudz/feed/boing.world/@pre.rss";
-$path = "/fudz/twitteru/Trev_Q";
+$path = "/fudz/twitteru/AngelMawlabaux";
 
 if(isset($_SERVER['REQUEST_URI'])){
   $path = $_SERVER['REQUEST_URI'];
@@ -143,13 +143,13 @@ function processTwitterUser($user){
 		$data = json_decode($pageData,true);
 		$i=0;
 		foreach($data as $d){
-				$user = "<div style=\"width: 10em; display:block; float:left; border:2px solid black; background:white; border-radius: 1em;\">";
+				$user = "<div style=\"width: 10em; display:block; float:left; border:2px solid black; background:white;\">";
 				$user.= "<img style=\"margin-right: 0.3em\" src=\"".$d['user']['profile_image_url_https']."\" width=\"9em\" />";
 				$user.= "<span><a href=\"$twitterBase/".$d['user']['screen_name']."\">".$d['user']['name']." (".$d['user']['screen_name'].")</a></span>";
 				$user.="</div>";
 				$outItem = new RSSItem();
 				$outItem->setPublished(trim(date("D, d M Y H:i:s O", strtotime($d['created_at']))));
-				$outItem->setTitle(substr($d['full_text'],0,50));
+				$outItem->setTitle(htmlspecialchars(mb_convert_encoding(substr($d['full_text'],0,50),'UTF-8','UTF-8')));
 				$text = $d['full_text'];
 				$text = preg_replace("|\n|","<br/>\n",$text);
 
@@ -162,7 +162,7 @@ function processTwitterUser($user){
 							$some=false;
 							try{
 						    $info = Embed::create($previewUrl);
-								$ptext = "<div style=\"max-width: 20em; max-height: 5em;border:1px solid black;border-radius:0.5em;float:right;\">";
+								$ptext = "<div style=\"max-width: 20em; max-height: 5em;border:1px solid black;float:right;\">";
 								if($info->image){
 									$some=true;
 									$ptext.="<img src=\"".$info->image."\" style=\"max-width:100%;max-height:100%\" />";
@@ -178,6 +178,9 @@ function processTwitterUser($user){
 									$dom = new \DOMDocument();
 									$dom->loadHTML($code,LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
 									foreach (iterator_to_array($dom->getElementsByTagName("script")) as $item) {
+											$item->parentNode->removeChild($item);
+									}
+									foreach (iterator_to_array($dom->getElementsByTagName("iframe")) as $item) {
 											$item->parentNode->removeChild($item);
 									}
 									$code = $dom->saveHTML();
@@ -222,7 +225,7 @@ function processTwitterUser($user){
 						$some=false;
 						try{
 						  $info = Embed::create($replytourl);
-							$ptext = "<div style=\"max-width: 20em; max-height: 5em;border:1px solid black;border-radius:0.5em;float:right;\">";
+							$ptext = "<div style=\"max-width: 20em; max-height: 5em;border:1px solid black;float:right;\">";
 							if($info->image){
 								$some=true;
 								$ptext.="<img src=\"".$info->image."\" style=\"max-width:100%;max-height:100%\" />";
@@ -238,6 +241,9 @@ function processTwitterUser($user){
 								$dom = new \DOMDocument();
 								$dom->loadHTML($code,LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
 								foreach (iterator_to_array($dom->getElementsByTagName("script")) as $item) {
+										$item->parentNode->removeChild($item);
+								}
+								foreach (iterator_to_array($dom->getElementsByTagName("iframe")) as $item) {
 										$item->parentNode->removeChild($item);
 								}
 								$code = $dom->saveHTML();
@@ -261,7 +267,7 @@ function processTwitterUser($user){
 				$outItem->setDescription($user.$text.$previewtext);
 
 				$turl = $twitterBase."/".$d['user']['screen_name']."/status/".$d['id_str'];
-				$outItem->setGuid("dfuds_".$turl);
+				$outItem->setGuid($turl);
 				$outItem->setLink($turl);
 				$outFeed->setItem($outItem);
 		}
