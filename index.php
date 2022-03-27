@@ -8,7 +8,7 @@ use TwitterNoAuth\Twitter;
 include_once __DIR__ . "/vendor/autoload.php";
 
 #$path = "/fudz/feed/boing.world/@pre.rss";
-$path = "/fudz/twitteru/AngelMawlabaux";
+$path = "/fudz/twitteru/_ndrsn";
 
 if(isset($_SERVER['REQUEST_URI'])){
   $path = $_SERVER['REQUEST_URI'];
@@ -108,20 +108,69 @@ function processFeed($method,$host,$path){
 		//RSS
 		if($pageData->getName()=="rss"){
 			$outFeed->setTitle(trim($pageData->channel->title));
-			$outFeed->setDescription(trim($pageData->channel->description));
+			$outFeed->setDescription(mb_convert_encoding(trim($pageData->channel->description), 'UTF-8', 'UTF-8'));
 		  foreach($pageData->channel->item as $item){
 				$outItem = new RSSItem();
-				$outItem->setTitle(trim($item->title));
+				$outItem->setTitle(mb_convert_encoding(strim($item->title), 'UTF-8', 'UTF-8'));
 				$outItem->setGuid("fudz-".trim($item->guid));
 				$outItem->setLink(trim($item->link));
 				$outItem->setPublished(trim($item->pubdate));
-				$outItem->setDescription(trim($item->description));
+				$outItem->setDescription(mb_convert_encoding(trim($item->description), 'UTF-8', 'UTF-8'));
 				$outFeed->setItem($outItem);
 			}
 			return $outFeed->render();
 		}
 	}
   return "<h1>Dunno how to decode $host data at $path.</h1>\n<pre>".htmlspecialchars($pageContent)."</pre>";
+}
+
+
+/**
+* Get preview text from a link. Mostly oauth and that.
+* empty string for nothing to give.
+*/
+function getPreviewText($url){
+	$some=false;
+	$ptext=null;
+	try{
+	  $info = Embed::create($url);
+		$ptext = "<div style=\"max-width: 20em; max-height: 5em;border:1px solid black;float:right;\">";
+		if($info->image){
+			$some=true;
+			$ptext.="<img src=\"".$info->image."\" style=\"max-width:100%;max-height:100%\" />";
+		}
+		if($info->description){
+			$some=true;
+			$ptext.="<span style=\"\" >".$info->description."</span>";
+		}
+		if($info->code){
+			$some=true;
+			$code = $info->code;
+			//Need to remove any <script> tags... Probably more than that really...
+			$dom = new \DOMDocument();
+			$dom->loadHTML($code,LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+			foreach (iterator_to_array($dom->getElementsByTagName("script")) as $item) {
+					$item->parentNode->removeChild($item);
+			}
+			foreach (iterator_to_array($dom->getElementsByTagName("iframe")) as $item) {
+					$item->parentNode->removeChild($item);
+			}
+			$code = $dom->saveHTML();
+			$ptext.=$code;
+		}
+		if($info->author){
+			$some=true;
+			$ptext.=" <span style=\"\" >(".$info->author.")</span>";
+		}
+		$ptext.="</div>";
+	}catch(\Exception $e){
+		//Might be dead or blocked server.
+		$some=false;
+	}
+	if($some){
+    return $ptext;
+	}
+	return null;
 }
 
 
@@ -159,44 +208,8 @@ function processTwitterUser($user){
 						$text = preg_replace("|".$url['url']."|","<a href=\"".$url['expanded_url']."\">".$url['expanded_url']."</a>",$text);
 						if($previewtext==""){
 							$previewUrl = $url['expanded_url'];
-							$some=false;
-							try{
-						    $info = Embed::create($previewUrl);
-								$ptext = "<div style=\"max-width: 20em; max-height: 5em;border:1px solid black;float:right;\">";
-								if($info->image){
-									$some=true;
-									$ptext.="<img src=\"".$info->image."\" style=\"max-width:100%;max-height:100%\" />";
-								}
-								if($info->description){
-									$some=true;
-									$ptext.="<span style=\"\" >".$info->description."</span>";
-								}
-								if($info->code){
-									$some=true;
-									$code = $info->code;
-									//Need to remove any <script> tags... Probably more than that really...
-									$dom = new \DOMDocument();
-									$dom->loadHTML($code,LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
-									foreach (iterator_to_array($dom->getElementsByTagName("script")) as $item) {
-											$item->parentNode->removeChild($item);
-									}
-									foreach (iterator_to_array($dom->getElementsByTagName("iframe")) as $item) {
-											$item->parentNode->removeChild($item);
-									}
-									$code = $dom->saveHTML();
-									$ptext.=$code;
-								}
-								if($info->author){
-									$some=true;
-									$ptext.=" <span style=\"\" >(".$info->author.")</span>";
-								}
-								$ptext.="</div>";
-							}catch(\Exception $e){
-								//Might be dead or blocked server.
-								$some=false;
-							}
-
-							if($some==true){
+							$ptext = getPreviewText($previewUrl);
+							if($ptext!=null){
 								$previewtext=$ptext;
 							}
 						}
@@ -223,48 +236,25 @@ function processTwitterUser($user){
 					if($d['in_reply_to_status_id']!=null){
 						$replytourl = "https://twitter.com/".$d['in_reply_to_screen_name']."/status/".$d['in_reply_to_status_id'];
 						$some=false;
-						try{
-						  $info = Embed::create($replytourl);
-							$ptext = "<div style=\"max-width: 20em; max-height: 5em;border:1px solid black;float:right;\">";
-							if($info->image){
-								$some=true;
-								$ptext.="<img src=\"".$info->image."\" style=\"max-width:100%;max-height:100%\" />";
-							}
-							if($info->description){
-								$some=true;
-								$ptext.="<span style=\"\" >".$info->description."</span>";
-							}
-							if($info->code){
-								$some=true;
-								$code = $info->code;
-								//Need to remove any <script> tags... Probably more than that really...
-								$dom = new \DOMDocument();
-								$dom->loadHTML($code,LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
-								foreach (iterator_to_array($dom->getElementsByTagName("script")) as $item) {
-										$item->parentNode->removeChild($item);
-								}
-								foreach (iterator_to_array($dom->getElementsByTagName("iframe")) as $item) {
-										$item->parentNode->removeChild($item);
-								}
-								$code = $dom->saveHTML();
-								$ptext.=$code;
-							}
-							if($info->author){
-								$some=true;
-								$ptext.=" <span style=\"\" >(".$info->author.")</span>";
-							}
-							$ptext.="</div>";
-						}catch(\Exception $e){
-							//Might be dead or blocked server.
-							$some=false;
-						}
-						if($some==true){
+						$ptext = getPreviewText($replytourl);
+						if($ptext!=null){
 							$previewtext=$ptext;
 						}
 					}
 				}
 
-				$outItem->setDescription($user.$text.$previewtext);
+				if($previewtext==""){
+					//Still nothing? What about a retweet? Was it a retweet? We could quote the thing he reweeted.
+					if(isset($d['retweeted_status']) && ($d['retweeted_status']!=null)){
+						$retweeturl = "https://twitter.com/".$d['retweeted_status']['user']['screen_name']."/status/".$d['retweeted_status']['id_str'];
+					}
+					$ptext = getPreviewText($retweeturl);
+					if($ptext!=null){
+						$previewtext=$ptext;
+					}
+				}
+
+				$outItem->setDescription(mb_convert_encoding($user.$text.$previewtext, 'UTF-8', 'UTF-8'));
 
 				$turl = $twitterBase."/".$d['user']['screen_name']."/status/".$d['id_str'];
 				$outItem->setGuid($turl);
