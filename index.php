@@ -130,6 +130,15 @@ function processFeed($method,$host,$path){
 * empty string for nothing to give.
 */
 function getPreviewText($url){
+	$hash = md5("Preview".$url);
+	$dir = "cache/".substr($hash,0,2)."/".substr($hash,2,2);
+  $fn = $dir."/".$hash.".cache";
+	if((file_exists($fn)) && ((time()-filemtime($fn) < 24 * 60 * 60))){
+	  $content=file_get_contents($fn);
+		if($content=""){return null;}
+		return $content;
+	}
+
 	$some=false;
 	$ptext=null;
 	try{
@@ -167,9 +176,13 @@ function getPreviewText($url){
 		//Might be dead or blocked server.
 		$some=false;
 	}
+	@mkdir($dir, 0777, true);
 	if($some){
+		@mkdir($dir, 0777, true);
+		file_put_contents($fn,$ptext);
     return $ptext;
 	}
+	file_put_contents($fn,"");
 	return null;
 }
 
