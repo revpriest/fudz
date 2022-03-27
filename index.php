@@ -149,7 +149,7 @@ function processTwitterUser($user){
 				$user.="</div>";
 				$outItem = new RSSItem();
 				$outItem->setPublished(trim(date("D, d M Y H:i:s O", strtotime($d['created_at']))));
-				$outItem->setTitle("Tweet:".substr($d['full_text'],0,50));
+				$outItem->setTitle(substr($d['full_text'],0,50));
 				$text = $d['full_text'];
 				$text = preg_replace("|\n|","<br/>\n",$text);
 
