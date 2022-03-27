@@ -8,7 +8,7 @@ use TwitterNoAuth\Twitter;
 include_once __DIR__ . "/vendor/autoload.php";
 
 #$path = "/fudz/feed/boing.world/@pre.rss";
-$path = "/fudz/twitteru/seanmcarroll";
+$path = "/fudz/twitteru/Trev_Q";
 
 if(isset($_SERVER['REQUEST_URI'])){
   $path = $_SERVER['REQUEST_URI'];
@@ -198,16 +198,62 @@ function processTwitterUser($user){
 							}
 						}
 					}
-				}else if((isset($d['entities']['media'])&&(sizeof($d['entities']['media'])>0))){
-					foreach($d['entities']['media'] as $media){
-						$murl = "";
-					  if(isset($media['media_url_https'])){
-							$murl = $media['media_url_https'];
-						}else if(isset($media['media_url'])){
-							$murl = $media['media_url'];
+				}
+
+				if($previewtext==""){
+					if((isset($d['entities']['media'])&&(sizeof($d['entities']['media'])>0))){
+						foreach($d['entities']['media'] as $media){
+							$murl = "";
+							if(isset($media['media_url_https'])){
+								$murl = $media['media_url_https'];
+							}else if(isset($media['media_url'])){
+								$murl = $media['media_url'];
+							}
+							if($url!=""){
+								$previewtext = "<img style=\"max-wdith:20em;max-height:20em;\" src=\"$murl\" />";
+							}
 						}
-						if($url!=""){
-							$previewtext = "<img style=\"max-wdith:20em;max-height:20em;\" src=\"$murl\" />";
+					}
+				}
+
+				if($previewtext==""){
+					if($d['in_reply_to_status_id']!=null){
+						$replytourl = "https://twitter.com/".$d['in_reply_to_screen_name']."/status/".$d['in_reply_to_status_id'];
+						$some=false;
+						try{
+						  $info = Embed::create($replytourl);
+							$ptext = "<div style=\"max-width: 20em; max-height: 5em;border:1px solid black;border-radius:0.5em;float:right;\">";
+							if($info->image){
+								$some=true;
+								$ptext.="<img src=\"".$info->image."\" style=\"max-width:100%;max-height:100%\" />";
+							}
+							if($info->description){
+								$some=true;
+								$ptext.="<span style=\"\" >".$info->description."</span>";
+							}
+							if($info->code){
+								$some=true;
+								$code = $info->code;
+								//Need to remove any <script> tags... Probably more than that really...
+								$dom = new \DOMDocument();
+								$dom->loadHTML($code,LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+								foreach (iterator_to_array($dom->getElementsByTagName("script")) as $item) {
+										$item->parentNode->removeChild($item);
+								}
+								$code = $dom->saveHTML();
+								$ptext.=$code;
+							}
+							if($info->author){
+								$some=true;
+								$ptext.=" <span style=\"\" >(".$info->author.")</span>";
+							}
+							$ptext.="</div>";
+						}catch(\Exception $e){
+							//Might be dead or blocked server.
+							$some=false;
+						}
+						if($some==true){
+							$previewtext=$ptext;
 						}
 					}
 				}
