@@ -1,0 +1,18 @@
+<IfModule mod_rewrite.c>
+RedirectMatch 404 /\.git
+RedirectMatch 404 /composer.phar
+RedirectMatch 404 /composer.lock
+RedirectMatch 404 /composer.json
+RedirectMatch 404 /doc
+RedirectMatch 404 /db
+RedirectMatch 404 /print
+RedirectMatch 404 /vendor
+RedirectMatch 404 /originals
+
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule .* /fudz/index.php [L]
+</IfModule>
+
+

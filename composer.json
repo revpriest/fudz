@@ -1,0 +1,19 @@
+{
+    "name": "pre/fudz",
+    "type": "project",
+    "autoload": {
+        "psr-4": {
+            "Pre\\Fudz\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Pre",
+            "email": "pre@dalliance.net"
+        }
+    ],
+    "require": {
+        "embed/embed": "^3.4",
+        "pharaonic/php-rss": "^1.0"
+    }
+}

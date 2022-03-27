@@ -1,0 +1,9 @@
+Fudz takes the feeds and turns them into fudz.
+
+Feeds can be twitter searches, or RSS, or reddit,
+or just watch-a-site-for-updates if all else fails.
+
+Fudz look nicer in TTRSS and include preview for Open-Graph
+links.
+
+
