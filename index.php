@@ -214,19 +214,32 @@ function processTwitterUser($user){
 				$user.= "<span><a href=\"$turl\">".$d['user']['name']." (".$d['user']['screen_name'].")</a></span>";
 				$user.= "<br/><br/>";
 
+				$forwardText = "";
+				$previewtext="<br/><br/>---<br/><br/>";
+
 				//Reply to something? - That goes in above the main tweet
 				if($d['in_reply_to_status_id']!=null){
 					$replytourl = "https://twitter.com/".$d['in_reply_to_screen_name']."/status/".$d['in_reply_to_status_id'];
 					$some=false;
 					$ptext = getPreviewText($replytourl);
 					if($ptext!=null){
-						$user.="<br/><b>Reply To:</b><br/>\n";
-						$user.=$ptext;
-						$user.="<br/>\n";
+						$forwardtext.="<br/><b>Reply To:</b><br/>\n";
+						$forewardtext.=$ptext;
+						$forewardtext.="<br/>\n";
 					}
 				}
 
-				$previewtext="<br/><br/>---<br/><br/>";
+				//What about a retweet? Was it a retweet? We could quote the thing he reweeted.
+				if(isset($d['retweeted_status']) && ($d['retweeted_status']!=null)){
+					$retweeturl = "https://twitter.com/".$d['retweeted_status']['user']['screen_name']."/status/".$d['retweeted_status']['id_str'];
+					$ptext = getPreviewText($retweeturl);
+					if($ptext!=null){
+						$forewardtext.="<br/><b>Retweet Of:</b><br/>\n";
+						$forewardtext.=$ptext;
+						$forewardtext.="<br/>\n";
+					}
+				}
+
 
 				//Attached Media?
 				if((isset($d['entities']['media'])&&(sizeof($d['entities']['media'])>0))){
@@ -262,17 +275,6 @@ function processTwitterUser($user){
 					}
 				}
 
-				//What about a retweet? Was it a retweet? We could quote the thing he reweeted.
-				if(isset($d['retweeted_status']) && ($d['retweeted_status']!=null)){
-					$retweeturl = "https://twitter.com/".$d['retweeted_status']['user']['screen_name']."/status/".$d['retweeted_status']['id_str'];
-					$ptext = getPreviewText($retweeturl);
-					if($ptext!=null){
-						$previewtext.="<br/><b>Retweet Of:</b><br/>\n";
-						$previewtext.=$ptext;
-						$previewtext.="<br/>\n";
-					}
-				}
-
 				$outItem = new RSSItem();
 				$outItem->setPublished(trim(date("D, d M Y H:i:s O", strtotime($d['created_at']))));
 				if(($text==null)||($text=="")){
@@ -285,7 +287,7 @@ function processTwitterUser($user){
 				$outItem->setTitle($title);
 				$outItem->setGuid($turl);
 				$outItem->setLink($turl);
-				$outItem->setDescription($user.$text.$previewtext);
+				$outItem->setDescription($forewardtext.$user.$text.$previewtext);
 				$outFeed->setItem($outItem);
 				$i++;
 		}
