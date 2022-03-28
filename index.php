@@ -8,7 +8,7 @@ use TwitterNoAuth\Twitter;
 include_once __DIR__ . "/vendor/autoload.php";
 
 #$path = "/fudz/feed/boing.world/@pre.rss";
-$path = "/fudz/twitteru/TheGreenParty";
+$path = "/fudz/twitteru/Ali_Crockford";
 
 if(isset($_SERVER['REQUEST_URI'])){
   $path = $_SERVER['REQUEST_URI'];
@@ -214,6 +214,17 @@ function processTwitterUser($user){
 				$user.= "<span><a href=\"$turl\">".$d['user']['name']." (".$d['user']['screen_name'].")</a></span>";
 				$user.= "<br/><br/>";
 
+				//Reply to something? - That goes in above the main tweet
+				if($d['in_reply_to_status_id']!=null){
+					$replytourl = "https://twitter.com/".$d['in_reply_to_screen_name']."/status/".$d['in_reply_to_status_id'];
+					$some=false;
+					$ptext = getPreviewText($replytourl);
+					if($ptext!=null){
+						$user.="<br/><b>Reply To:</b><br/>\n";
+						$user.=$ptext;
+						$user.="<br/>\n";
+					}
+				}
 
 				$previewtext="<br/><br/>---<br/><br/>";
 
@@ -248,18 +259,6 @@ function processTwitterUser($user){
 							  $donelink=true;
 							}
 						}
-					}
-				}
-
-				//Reply to something?
-				if($d['in_reply_to_status_id']!=null){
-					$replytourl = "https://twitter.com/".$d['in_reply_to_screen_name']."/status/".$d['in_reply_to_status_id'];
-					$some=false;
-					$ptext = getPreviewText($replytourl);
-					if($ptext!=null){
-						$previewtext.="<br/><b>Reply To:</b><br/>\n";
-						$previewtext.=$ptext;
-						$previewtext.="<br/>\n";
 					}
 				}
 
