@@ -8,7 +8,7 @@ use TwitterNoAuth\Twitter;
 include_once __DIR__ . "/vendor/autoload.php";
 
 #$path = "/fudz/feed/boing.world/@pre.rss";
-$path = "/fudz/twitteru/_ndrsn";
+$path = "/fudz/twitteru/TheGreenParty";
 
 if(isset($_SERVER['REQUEST_URI'])){
   $path = $_SERVER['REQUEST_URI'];
@@ -135,7 +135,7 @@ function getPreviewText($url){
   $fn = $dir."/".$hash.".cache";
 	if((file_exists($fn)) && ((time()-filemtime($fn) < 24 * 60 * 60))){
 	  $content=file_get_contents($fn);
-		if($content=""){return null;}
+		if($content==""){return null;}
 		return $content;
 	}
 
@@ -143,14 +143,14 @@ function getPreviewText($url){
 	$ptext=null;
 	try{
 	  $info = Embed::create($url);
-		$ptext = "<div style=\"max-width: 20em; max-height: 5em;border:1px solid black;float:right;\">";
+		$ptext = "";
 		if($info->image){
 			$some=true;
-			$ptext.="<img src=\"".$info->image."\" style=\"max-width:100%;max-height:100%\" />";
+			$ptext.="<img src=\"".$info->image."\" />";
 		}
 		if($info->description){
 			$some=true;
-			$ptext.="<span style=\"\" >".$info->description."</span>";
+			$ptext.="<blockquote>".$info->description."</blockquote>";
 		}
 		if($info->code){
 			$some=true;
@@ -169,9 +169,8 @@ function getPreviewText($url){
 		}
 		if($info->author){
 			$some=true;
-			$ptext.=" <span style=\"\" >(".$info->author.")</span>";
+			$ptext.=" (By ".$info->author.")";
 		}
-		$ptext.="</div>";
 	}catch(\Exception $e){
 		//Might be dead or blocked server.
 		$some=false;
@@ -205,74 +204,91 @@ function processTwitterUser($user){
 		$data = json_decode($pageData,true);
 		$i=0;
 		foreach($data as $d){
-				$user = "<div style=\"width: 10em; display:block; float:left; border:2px solid black; background:white;\">";
-				$user.= "<img style=\"margin-right: 0.3em\" src=\"".$d['user']['profile_image_url_https']."\" width=\"9em\" />";
-				$user.= "<span><a href=\"$twitterBase/".$d['user']['screen_name']."\">".$d['user']['name']." (".$d['user']['screen_name'].")</a></span>";
-				$user.="</div>";
-				$outItem = new RSSItem();
-				$outItem->setPublished(trim(date("D, d M Y H:i:s O", strtotime($d['created_at']))));
-				$outItem->setTitle(htmlspecialchars(mb_convert_encoding(substr($d['full_text'],0,50),'UTF-8','UTF-8')));
-				$text = $d['full_text'];
-				$text = preg_replace("|\n|","<br/>\n",$text);
+				$textt = mb_convert_encoding($d['full_text'],'UTF-8','UTF-8');
+				$text = preg_replace("|\n|","<br/>\n",$textt);
+				$turl = $twitterBase."/".$d['user']['screen_name']."/status/".$d['id_str'];
 
-				$previewtext="";
+				
+				$user = "<b>User:</b><br/>\n";
+				$user.= "<img style=\"margin-right: 0.3em\" src=\"".$d['user']['profile_image_url_https']."\" width=\"9em\" />";
+				$user.= "<span><a href=\"$turl\">".$d['user']['name']." (".$d['user']['screen_name'].")</a></span>";
+				$user.= "<br/><br/>";
+
+
+				$previewtext="<br/><br/>---<br/><br/>";
+
+				//Attached Media?
+				if((isset($d['entities']['media'])&&(sizeof($d['entities']['media'])>0))){
+					foreach($d['entities']['media'] as $media){
+						$murl = "";
+						if(isset($media['media_url_https'])){
+							$murl = $media['media_url_https'];
+						}else if(isset($media['media_url'])){
+							$murl = $media['media_url'];
+						}
+						if($murl!=""){
+							$previewtext.="<br/><b>Media:</b><br/>\n";
+							$previewtext = "<img style=\"max-wdith:20em;max-height:20em;\" src=\"$murl\" />";
+							$previewtext.="<br/><br/>\n";
+						}
+					}
+				}
+
+
+				//Links?
 				if(sizeof($d['entities']['urls'])>0){
+					$donelink=false;
 					foreach($d['entities']['urls'] as $url){
 						$text = preg_replace("|".$url['url']."|","<a href=\"".$url['expanded_url']."\">".$url['expanded_url']."</a>",$text);
-						if($previewtext==""){
+						if($donelink==false){
 							$previewUrl = $url['expanded_url'];
 							$ptext = getPreviewText($previewUrl);
 							if($ptext!=null){
-								$previewtext=$ptext;
+								$previewtext.="<br/><b>FirstLink:</b><br/>".$ptext."<br/><br/><\n";
+							  $donelink=true;
 							}
 						}
 					}
 				}
 
-				if($previewtext==""){
-					if((isset($d['entities']['media'])&&(sizeof($d['entities']['media'])>0))){
-						foreach($d['entities']['media'] as $media){
-							$murl = "";
-							if(isset($media['media_url_https'])){
-								$murl = $media['media_url_https'];
-							}else if(isset($media['media_url'])){
-								$murl = $media['media_url'];
-							}
-							if($url!=""){
-								$previewtext = "<img style=\"max-wdith:20em;max-height:20em;\" src=\"$murl\" />";
-							}
-						}
+				//Reply to something?
+				if($d['in_reply_to_status_id']!=null){
+					$replytourl = "https://twitter.com/".$d['in_reply_to_screen_name']."/status/".$d['in_reply_to_status_id'];
+					$some=false;
+					$ptext = getPreviewText($replytourl);
+					if($ptext!=null){
+						$previewtext.="<br/><b>Reply To:</b><br/>\n";
+						$previewtext.=$ptext;
+						$previewtext.="<br/>\n";
 					}
 				}
 
-				if($previewtext==""){
-					if($d['in_reply_to_status_id']!=null){
-						$replytourl = "https://twitter.com/".$d['in_reply_to_screen_name']."/status/".$d['in_reply_to_status_id'];
-						$some=false;
-						$ptext = getPreviewText($replytourl);
-						if($ptext!=null){
-							$previewtext=$ptext;
-						}
-					}
-				}
-
-				if($previewtext==""){
-					//Still nothing? What about a retweet? Was it a retweet? We could quote the thing he reweeted.
-					if(isset($d['retweeted_status']) && ($d['retweeted_status']!=null)){
-						$retweeturl = "https://twitter.com/".$d['retweeted_status']['user']['screen_name']."/status/".$d['retweeted_status']['id_str'];
-					}
+				//What about a retweet? Was it a retweet? We could quote the thing he reweeted.
+				if(isset($d['retweeted_status']) && ($d['retweeted_status']!=null)){
+					$retweeturl = "https://twitter.com/".$d['retweeted_status']['user']['screen_name']."/status/".$d['retweeted_status']['id_str'];
 					$ptext = getPreviewText($retweeturl);
 					if($ptext!=null){
-						$previewtext=$ptext;
+						$previewtext.="<br/><b>Retweet Of:</b><br/>\n";
+						$previewtext.=$ptext;
+						$previewtext.="<br/>\n";
 					}
 				}
 
-				$outItem->setDescription(mb_convert_encoding($user.$text.$previewtext, 'UTF-8', 'UTF-8'));
-
-				$turl = $twitterBase."/".$d['user']['screen_name']."/status/".$d['id_str'];
+				$outItem = new RSSItem();
+				$outItem->setPublished(trim(date("D, d M Y H:i:s O", strtotime($d['created_at']))));
+				if(($text==null)||($text=="")){
+					print("Blank");exit;
+				}
+				$title = htmlspecialchars(substr($textt,0,50));
+				if(($title=="")||($title==null)){
+					$title="Tweet";
+				}
+				$outItem->setTitle($title);
 				$outItem->setGuid($turl);
 				$outItem->setLink($turl);
+				$outItem->setDescription($user.$text.$previewtext);
 				$outFeed->setItem($outItem);
+				$i++;
 		}
 		return $outFeed->render();
 	}
