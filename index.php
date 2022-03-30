@@ -8,7 +8,7 @@ use TwitterNoAuth\Twitter;
 include_once __DIR__ . "/vendor/autoload.php";
 
 #$path = "/fudz/feed/boing.world/@pre.rss";
-$path = "/fudz/twitteru/Ali_Crockford";
+$path = "/fudz/twitteru/RussInCheshire";
 
 if(isset($_SERVER['REQUEST_URI'])){
   $path = $_SERVER['REQUEST_URI'];
@@ -207,6 +207,10 @@ function processTwitterUser($user){
 				$textt = mb_convert_encoding($d['full_text'],'UTF-8','UTF-8');
 				$text = preg_replace("|\n|","<br/>\n",$textt);
 				$turl = $twitterBase."/".$d['user']['screen_name']."/status/".$d['id_str'];
+				$title = htmlspecialchars(substr($textt,0,50));
+				if(($title=="")||($title==null)){
+					$title="Tweet";
+				}
 
 				
 				$user = "<b>User:</b><br/>\n";
@@ -214,7 +218,7 @@ function processTwitterUser($user){
 				$user.= "<span><a href=\"$turl\">".$d['user']['name']." (".$d['user']['screen_name'].")</a></span>";
 				$user.= "<br/><br/>";
 
-				$forwardText = "";
+				$forewardtext = "";
 				$previewtext="<br/><br/>---<br/><br/>";
 
 				//Reply to something? - That goes in above the main tweet
@@ -223,9 +227,14 @@ function processTwitterUser($user){
 					$some=false;
 					$ptext = getPreviewText($replytourl);
 					if($ptext!=null){
-						$forwardtext.="<br/><b>Reply To:</b><br/>\n";
+						$forewardtext.="<br/><b>Reply To:</b><br/>\n";
 						$forewardtext.=$ptext;
 						$forewardtext.="<br/>\n";
+					}
+					//If it's a self-reply, that's a thread. Change the title
+					//so it won't be marked as a reply.
+					if($d['in_reply_to_screen_name'] == $d['user']['screen_name']){	
+						$title="Thread ".$title;
 					}
 				}
 
@@ -280,14 +289,10 @@ function processTwitterUser($user){
 				if(($text==null)||($text=="")){
 					print("Blank");exit;
 				}
-				$title = htmlspecialchars(substr($textt,0,50));
-				if(($title=="")||($title==null)){
-					$title="Tweet";
-				}
 				$outItem->setTitle($title);
 				$outItem->setGuid($turl);
 				$outItem->setLink($turl);
-				$outItem->setDescription($forewardtext.$user.$text.$previewtext);
+				$outItem->setDescription($user.$forewardtext.$text.$previewtext);
 				$outFeed->setItem($outItem);
 				$i++;
 		}
