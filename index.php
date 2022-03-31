@@ -109,7 +109,8 @@ function processFeed($method,$host,$path){
 		if($pageData->getName()=="rss"){
 			$outFeed->setTitle(trim($pageData->channel->title));
 			$outFeed->setDescription(mb_convert_encoding(trim($pageData->channel->description), 'UTF-8', 'UTF-8'));
-		  foreach($pageData->channel->item as $item){
+		  for($i=sizeof($pageData->channel->item)-1;$i>=0;$i++){
+			  $item = $pageData->channel->item[$i];
 				$outItem = new RSSItem();
 				$outItem->setTitle(mb_convert_encoding(strim($item->title), 'UTF-8', 'UTF-8'));
 				$outItem->setGuid("fudz-".trim($item->guid));
@@ -261,7 +262,7 @@ function processTwitterUser($user){
 						}
 						if($murl!=""){
 							$previewtext.="<br/><b>Media:</b><br/>\n";
-							$previewtext = "<img style=\"max-wdith:20em;max-height:20em;\" src=\"$murl\" />";
+							$previewtext = "<img src=\"$murl\" />";
 							$previewtext.="<br/><br/>\n";
 						}
 					}
