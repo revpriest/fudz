@@ -8,7 +8,8 @@ use TwitterNoAuth\Twitter;
 include_once __DIR__ . "/vendor/autoload.php";
 
 #$path = "/fudz/feed/boing.world/@pre.rss";
-$path = "/fudz/twitteru/RussInCheshire";
+#$path = "/fudz/twitteru/RussInCheshire";
+$path = "/fudz/fetchpreview/https/rss.ngfiles.com/latestsubmissions.xml";
 
 if(isset($_SERVER['REQUEST_URI'])){
   $path = $_SERVER['REQUEST_URI'];
@@ -25,6 +26,12 @@ switch($type){
 		$host = array_shift($bits);
 		$path = "/".implode("/",$bits);
     print processFeed("https://",$host,$path);
+	  return;
+  case "fetchpreview":
+		$http = array_shift($bits);
+		$host = array_shift($bits);
+		$path = "/".implode("/",$bits);
+    print processFeedWithPreview($http,$host,$path);
 	  return;
   case "twitteru":
 		$user = array_shift($bits);
@@ -109,11 +116,11 @@ function processFeed($method,$host,$path){
 		if($pageData->getName()=="rss"){
 			$outFeed->setTitle(trim($pageData->channel->title));
 			$outFeed->setDescription(mb_convert_encoding(trim($pageData->channel->description), 'UTF-8', 'UTF-8'));
-		  for($i=sizeof($pageData->channel->item)-1;$i>=0;$i++){
+		  for($i=sizeof($pageData->channel->item)-1;$i>=0;$i--){
 			  $item = $pageData->channel->item[$i];
 				$outItem = new RSSItem();
 				$outItem->setTitle(mb_convert_encoding(strim($item->title), 'UTF-8', 'UTF-8'));
-				$outItem->setGuid("fudz-".trim($item->guid));
+				$outItem->setGuid(trim($item->guid));
 				$outItem->setLink(trim($item->link));
 				$outItem->setPublished(trim($item->pubdate));
 				$outItem->setDescription(mb_convert_encoding(trim($item->description), 'UTF-8', 'UTF-8'));
@@ -185,6 +192,59 @@ function getPreviewText($url){
 	file_put_contents($fn,"");
 	return null;
 }
+
+
+/**
+* Process a New Grounds feed.
+* They don't have images for some reason. Doh.
+* So we'll have to fudz with them.
+*/
+function processFeedWithPreview($http,$host,$path){
+	$url = urldecode($http."://".$host.$path);
+  $pageContent = cache_fetch($url);
+	try{
+    $pageData = @new \SimpleXMLElement($pageContent);
+	}catch(\Exception $e){
+	}
+
+	$outFeed = new RSS();
+	$outFeed->setTitle("Default Title $url");
+	$outFeed->setDescription("A feed like $url only with the page-previews fetched.");
+	$outFeed->setLink("https://dalliance.net/fudz/fetchpreview/$http/$host/$path");
+
+	if($pageData!=null){
+		//RSS
+		if($pageData->getName()=="rss"){
+			$outFeed->setTitle(trim($pageData->channel->title));
+			$pageDesc = mb_convert_encoding(trim($pageData->channel->description), 'UTF-8', 'UTF-8');
+			$pageDesc.=" only with previews fetched for each page";
+			$outFeed->setDescription($pageDesc);
+		  $numItems = sizeof($pageData->channel->item);
+		  for($i=$numItems-1;$i>=0;$i--){
+			  $item = $pageData->channel->item[$i];
+				if($item){
+					$ititle = mb_convert_encoding(trim($item->title), 'UTF-8', 'UTF-8');
+					$desc = mb_convert_encoding(trim($item->description), 'UTF-8', 'UTF-8');
+
+					$linkedPage = trim($item->link);
+					$ptext = getPreviewText($linkedPage);
+					$desc=$desc."<br/>--<br/>".$ptext;
+
+					$outItem = new RSSItem();
+					$outItem->setTitle($ititle);
+					$outItem->setGuid(trim($item->guid));
+					$outItem->setLink(trim($item->link));
+					$outItem->setPublished(trim($item->pubdate));
+					$outItem->setDescription($desc);
+					$outFeed->setItem($outItem);
+				}
+			}
+			return $outFeed->render();
+		}
+	}
+	return $outFeed->render();
+}
+
 
 
 /**
@@ -290,10 +350,17 @@ function processTwitterUser($user){
 				if(($text==null)||($text=="")){
 					print("Blank");exit;
 				}
+				$finalText = $user.$forewardtext.$text.$previewtext;
+
+				//Let's use nitter.net if we can
+				$finalText = preg_replace("|twitter.com/|","nitter.net/",$finalText);
+				$trurl = preg_replace("|twitter.com/|","nitter.net/",$turl);
+
+
 				$outItem->setTitle($title);
 				$outItem->setGuid($turl);
-				$outItem->setLink($turl);
-				$outItem->setDescription($user.$forewardtext.$text.$previewtext);
+				$outItem->setLink($trurl);
+				$outItem->setDescription($finalText);
 				$outFeed->setItem($outItem);
 				$i++;
 		}
