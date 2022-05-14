@@ -7,9 +7,12 @@ use TwitterNoAuth\Twitter;
 
 include_once __DIR__ . "/vendor/autoload.php";
 
-#$path = "/fudz/feed/boing.world/@pre.rss";
-#$path = "/fudz/twitteru/RussInCheshire";
-$path = "/fudz/fetchpreview/https/rss.ngfiles.com/latestsubmissions.xml";
+$myHome = "dalliance.net/fudz";
+
+#$path = "/fudz/fetchpreview/https/rss.ngfiles.com/latestsubmissions.xml";
+#$path = "/fudz/twitteru/revpriest";
+$path = "/fudz/mastou/mastodon.social/TheoEsc";
+#$path = "/fudz/feed/https/boing.world/@pre.rss";
 
 if(isset($_SERVER['REQUEST_URI'])){
   $path = $_SERVER['REQUEST_URI'];
@@ -23,9 +26,10 @@ $type = array_shift($bits);
 header("Content-Type: text/xml;charset=UTF-8");
 switch($type){
   case "feed":
+		$http = array_shift($bits);
 		$host = array_shift($bits);
 		$path = "/".implode("/",$bits);
-    print processFeed("https://",$host,$path);
+    print processFeed($http,$host,$path);
 	  return;
   case "fetchpreview":
 		$http = array_shift($bits);
@@ -36,6 +40,12 @@ switch($type){
   case "twitteru":
 		$user = array_shift($bits);
     print processTwitterUser($user);
+	  return;
+  case "mastou":
+  case "mastodonu":
+		$host = array_shift($bits);
+		$user = array_shift($bits);
+    print processMastodonUser($host,$user);
 	  return;
   case "feedi":
     print processFeed("http://",$host,$path);
@@ -99,32 +109,42 @@ function cache_fetch($url){
 /**
 * Process a feed
 */
-function processFeed($method,$host,$path){
-	$outFeed = new RSS();
-	$outFeed->setTitle("Default RSS Title");
-	$outFeed->setDescription("Default RSS Description");
-	$outFeed->setLink("https://dalliance.net/fudz/feed/$host.$path");
+function processFeed($http,$host,$path){
+	global $myHome;
+	$url = urldecode($http."://".$host.$path);
 
-  $pageContent = cache_fetch($method.$host.$path);
+  $pageContent = cache_fetch($url);
 	try{
     $pageData = @new \SimpleXMLElement($pageContent);
 	}catch(\Exception $e){
 	}
 
+	$outFeed = new RSS();
+	$outFeed->setTitle("Default RSS Title");
+	$outFeed->setDescription("A copy of $url with few changes");
+	$outFeed->setLink("https://$myHome/fetchpreview/$http/$host$path");
+
 	if($pageData!=null){
 		//RSS
 		if($pageData->getName()=="rss"){
 			$outFeed->setTitle(trim($pageData->channel->title));
-			$outFeed->setDescription(mb_convert_encoding(trim($pageData->channel->description), 'UTF-8', 'UTF-8'));
-		  for($i=sizeof($pageData->channel->item)-1;$i>=0;$i--){
+			$pageDesc = mb_convert_encoding(trim($pageData->channel->description), 'UTF-8', 'UTF-8');
+			$outFeed->setDescription($pageDesc);
+		  $numItems = sizeof($pageData->channel->item);
+		  for($i=$numItems-1;$i>=0;$i--){
 			  $item = $pageData->channel->item[$i];
-				$outItem = new RSSItem();
-				$outItem->setTitle(mb_convert_encoding(strim($item->title), 'UTF-8', 'UTF-8'));
-				$outItem->setGuid(trim($item->guid));
-				$outItem->setLink(trim($item->link));
-				$outItem->setPublished(trim($item->pubdate));
-				$outItem->setDescription(mb_convert_encoding(trim($item->description), 'UTF-8', 'UTF-8'));
-				$outFeed->setItem($outItem);
+				if($item){
+					$ititle = mb_convert_encoding(trim($item->title), 'UTF-8', 'UTF-8');
+					$desc = mb_convert_encoding(trim($item->description), 'UTF-8', 'UTF-8');
+
+					$outItem = new RSSItem();
+					$outItem->setTitle($ititle);
+					$outItem->setGuid(trim($item->guid));
+					$outItem->setLink(trim($item->link));
+					$outItem->setPublished(trim($item->pubdate));
+					$outItem->setDescription($desc);
+					$outFeed->setItem($outItem);
+				}
 			}
 			return $outFeed->render();
 		}
@@ -194,13 +214,14 @@ function getPreviewText($url){
 }
 
 
+
 /**
-* Process a New Grounds feed.
-* They don't have images for some reason. Doh.
-* So we'll have to fudz with them.
+* Process a Fedivers user though a mastodon API,
+* well. It's RSS feed. Is that enough?
 */
-function processFeedWithPreview($http,$host,$path){
-	$url = urldecode($http."://".$host.$path);
+function processMastodonUser($host,$user){
+	global $myHome;
+	$url = urldecode("https://$host/@$user.rss");
   $pageContent = cache_fetch($url);
 	try{
     $pageData = @new \SimpleXMLElement($pageContent);
@@ -209,8 +230,8 @@ function processFeedWithPreview($http,$host,$path){
 
 	$outFeed = new RSS();
 	$outFeed->setTitle("Default Title $url");
-	$outFeed->setDescription("A feed like $url only with the page-previews fetched.");
-	$outFeed->setLink("https://dalliance.net/fudz/fetchpreview/$http/$host/$path");
+	$outFeed->setDescription("A of the user at $url only with the page-previews fetched.");
+	$outFeed->setLink("https://$myHome/mastou/$host/$user");
 
 	if($pageData!=null){
 		//RSS
@@ -241,8 +262,64 @@ function processFeedWithPreview($http,$host,$path){
 			}
 			return $outFeed->render();
 		}
+	  return $outFeed->render();
 	}
-	return $outFeed->render();
+  return "<h1>Dunno how to decode $host data at $path.</h1>\n<pre>".htmlspecialchars($pageContent)."</pre>";
+}
+
+
+
+/**
+* Process a New Grounds feed.
+* They don't have images for some reason. Doh.
+* So we'll have to fudz with them.
+*/
+function processFeedWithPreview($http,$host,$path){
+	global $myHome;
+	$url = urldecode($http."://".$host.$path);
+  $pageContent = cache_fetch($url);
+	try{
+    $pageData = @new \SimpleXMLElement($pageContent);
+	}catch(\Exception $e){
+	}
+
+	$outFeed = new RSS();
+	$outFeed->setTitle("Default Title $url");
+	$outFeed->setDescription("A feed like $url only with the page-previews fetched.");
+	$outFeed->setLink("https://$myHome/fetchpreview/$http/$host$path");
+
+	if($pageData!=null){
+		//RSS
+		if($pageData->getName()=="rss"){
+			$outFeed->setTitle(trim($pageData->channel->title));
+			$pageDesc = mb_convert_encoding(trim($pageData->channel->description), 'UTF-8', 'UTF-8');
+			$pageDesc.=" only with previews fetched for each page";
+			$outFeed->setDescription($pageDesc);
+		  $numItems = sizeof($pageData->channel->item);
+		  for($i=$numItems-1;$i>=0;$i--){
+			  $item = $pageData->channel->item[$i];
+				if($item){
+					$ititle = mb_convert_encoding(trim($item->title), 'UTF-8', 'UTF-8');
+					$desc = mb_convert_encoding(trim($item->description), 'UTF-8', 'UTF-8');
+
+					$linkedPage = trim($item->link);
+					$ptext = getPreviewText($linkedPage);
+					$desc=$desc."<br/>--<br/>".$ptext;
+
+					$outItem = new RSSItem();
+					$outItem->setTitle($ititle);
+					$outItem->setGuid(trim($item->guid));
+					$outItem->setLink(trim($item->link));
+					$outItem->setPublished(trim($item->pubdate));
+					$outItem->setDescription($desc);
+					$outFeed->setItem($outItem);
+				}
+			}
+			return $outFeed->render();
+		}
+	  return $outFeed->render();
+	}
+  return "<h1>Dunno how to decode $host data at $path.</h1>\n<pre>".htmlspecialchars($pageContent)."</pre>";
 }
 
 
@@ -251,11 +328,12 @@ function processFeedWithPreview($http,$host,$path){
 * Process a twitter suer
 */
 function processTwitterUser($user){
+	global $myHome;
   $twitterBase = "https://twitter.com";
 	$outFeed = new RSS();
 	$outFeed->setTitle("@$user Tweets");
 	$outFeed->setDescription("@$user Tweets");
-	$outFeed->setLink("https://dalliance.net/fudz/twitteru/$user");
+	$outFeed->setLink("https://$myHome/twitteru/$user");
 
 	$url =  'https://api.twitter.com/1.1/statuses/user_timeline.json?screen_name='.$user.'&count=20&tweet_mode=extended';
 	$pageData = cache_fetch_twitter($url);
