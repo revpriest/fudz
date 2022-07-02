@@ -1,4 +1,12 @@
 <?php
+/**
+* ToDo
+*
+* How can we publish this, and yet still use the
+* open-cache under the url /fudz on my obvious
+* website?
+*
+*/
 namespace revpriest\fudz;
 use Embed\Embed;
 use Pharaonic\RSS\RSS;
@@ -21,6 +29,17 @@ $bits = explode("/",$path);
 array_shift($bits);					//Start with a slash
 $fudz = array_shift($bits);
 $type = array_shift($bits);
+
+$nitterInstances = [
+  "nitter.net",
+  "nitter.42l.fr",
+  "nitter.pussthecat.org",
+  "nitter.fdn.fr",
+  "nitter.1d4.us",
+  "nitter.kavin.rocks",
+  "nitter.unixfox.eu",
+  "nitter.domain.glass",
+];
 
 
 header("Content-Type: text/xml;charset=UTF-8");
@@ -431,8 +450,9 @@ function processTwitterUser($user){
 				$finalText = $user.$forewardtext.$text.$previewtext;
 
 				//Let's use nitter.net if we can
-				$finalText = preg_replace("|twitter.com/|","nitter.net/",$finalText);
-				$trurl = preg_replace("|twitter.com/|","nitter.net/",$turl);
+				$nitterInstance = $nitterInstances[intval(rand(0,count($nitterInstances)-1))];
+				$finalText = preg_replace("|twitter.com/|","$nitterInstance/",$finalText);
+				$trurl = preg_replace("|twitter.com/|","$nitterInstance/",$turl);
 
 
 				$outItem->setTitle($title);
