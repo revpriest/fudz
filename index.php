@@ -15,32 +15,94 @@ use TwitterNoAuth\Twitter;
 
 include_once __DIR__ . "/vendor/autoload.php";
 
-$myHome = "dalliance.net/fudz";
 
-#$path = "/fudz/fetchpreview/https/rss.ngfiles.com/latestsubmissions.xml";
-#$path = "/fudz/twitteru/revpriest";
-$path = "/fudz/mastou/mastodon.social/TheoEsc";
-#$path = "/fudz/feed/https/boing.world/@pre.rss";
+//You can override all these in a file "./secrets.php"
+$secretsFile = "secrets.php";
 
-if(isset($_SERVER['REQUEST_URI'])){
-  $path = $_SERVER['REQUEST_URI'];
+//Default hostname is taken from $_SERVER but feel free to override it.
+$hostname="localhost";
+if(isset($_SERVER['HTTP_HOST'])){
+  $hostname = $_SERVER['HTTP_HOST'];
 }
-$bits = explode("/",$path);
-array_shift($bits);					//Start with a slash
-$fudz = array_shift($bits);
-$type = array_shift($bits);
+#$hostname="localhost";
 
+//The homepath is the directory in which fudz can be found.
+$homepath="/fudz/";
+
+//You may limit which IPs are allowed to connect
+$allowedIps = [];
+
+//You may allow some paths to be viewed even by other IPS.
+$whitelistPaths = ["twitteru/revpriest","mastou/boing.world/pre","feed/https/boing.world/@pre.rss"];
+
+//If you rewrite twitter URLS to nitter, share the load.
 $nitterInstances = [
-  "nitter.net",
+//  "nitter.net",			//Removed, always overloaded.
   "nitter.42l.fr",
   "nitter.pussthecat.org",
   "nitter.fdn.fr",
   "nitter.1d4.us",
   "nitter.kavin.rocks",
-  "nitter.unixfox.eu",
-  "nitter.domain.glass",
+  "nitter.unixfox.eu"
 ];
 
+
+
+//You can have a default path so you can run a CLI test
+#$path = $homepath."feed/https/boing.world/@pre.rss";
+$path = $homepath."twitteru/revpriest";
+if(isset($_SERVER['REQUEST_URI'])){
+  $path = $_SERVER['REQUEST_URI'];
+}
+
+
+$fudz = substr($path,0,strlen($homepath));
+if($fudz === $homepath){
+  $path = substr($path,strlen($homepath));
+}else{
+  $path = substr($path,1);	//Just a slash then? Weird.
+}
+$myHome = $hostname.$fudz;
+
+//All that can be overwritten with a file called secrets.php:
+if(file_exists(__DIR__ . "/".$secretsFile)){
+  include_once __DIR__ . "/".$secretsFile;
+}
+
+
+//Have we limited by IP?
+$allowed = true;
+if(isset($_SERVER['REMOTE_ADDR'])){
+	if(sizeof($allowedIps)>0){
+		$allowed=false;	
+		$ip = $_SERVER['REMOTE_ADDR'];
+		foreach($allowedIps as $testIp){
+			if($ip==$testIp){
+				$allowed=true;
+			}
+		}
+	}
+
+	foreach($whitelistPaths as $wl){
+	  if($path==$wl){
+			$allowed=true;
+		}
+	}
+}
+if(!$allowed){
+  print("I am not running on open relay here $ip!\n");
+	print("Get your own Fudz at https://github.com/revpriest/fudz");
+//	file_put_contents("/home/pre/log/fudz.err","$ip denied $path\n",FILE_APPEND);
+	exit;
+}else{
+//	file_put_contents("/home/pre/log/fudz.err","? $ip allowed $path\n",FILE_APPEND);
+}
+
+
+//Slashes divide our parameters then, what's the command type?
+$bits = explode("/",$path);
+while($bits[0]===""){array_shift($bits);}
+$type = array_shift($bits);
 
 header("Content-Type: text/xml;charset=UTF-8");
 switch($type){
@@ -71,7 +133,7 @@ switch($type){
 	  return;
    default:
 }
-print("Unknown command type");
+print("Unknown command type $type");
 return;
 
 
@@ -197,7 +259,9 @@ function getPreviewText($url){
 		}
 		if($info->description){
 			$some=true;
-			$ptext.="<blockquote>".$info->description."</blockquote>";
+			$t = str_replace("<script","<scropt",$info->description);
+			$t = str_replace("</script>","</scropt>",$t);
+			$ptext.="<blockquote>".$t."</blockquote>";
 		}
 		if($info->code){
 			$some=true;
@@ -283,7 +347,7 @@ function processMastodonUser($host,$user){
 		}
 	  return $outFeed->render();
 	}
-  return "<h1>Dunno how to decode $host data at $path.</h1>\n<pre>".htmlspecialchars($pageContent)."</pre>";
+  return "<h1>Dunno how to decode masto user $user data at $path.</h1>\n<pre>".htmlspecialchars($pageContent)."</pre>";
 }
 
 
@@ -348,7 +412,8 @@ function processFeedWithPreview($http,$host,$path){
 */
 function processTwitterUser($user){
 	global $myHome;
-  $twitterBase = "https://twitter.com";
+	global $nitterInstances;
+	$twitterBase = "https://twitter.com";
 	$outFeed = new RSS();
 	$outFeed->setTitle("@$user Tweets");
 	$outFeed->setDescription("@$user Tweets");
