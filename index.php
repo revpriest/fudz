@@ -92,7 +92,7 @@ if(isset($_SERVER['REMOTE_ADDR'])){
 }
 if(!$allowed){
   print("I am not running on open relay here $ip!\n");
-	print("Get your own Fudz at https://github.com/revpriest/fudz");
+	print("Get your own Fudz at <a href=\"https://github.com/revpriest/fudz\">https://github.com/revpriest/fudz</a>");
 //	file_put_contents("/home/pre/log/fudz.err","$ip denied $path\n",FILE_APPEND);
 	exit;
 }else{
@@ -204,7 +204,7 @@ function processFeed($http,$host,$path){
 	$outFeed = new RSS();
 	$outFeed->setTitle("Default RSS Title");
 	$outFeed->setDescription("A copy of $url with few changes");
-	$outFeed->setLink("https://$myHome/fetchpreview/$http/$host$path");
+	$outFeed->setLink("https://$myHome"."feed/$http/$host$path");
 
 	if($pageData!=null){
 		//RSS
