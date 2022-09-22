@@ -2,6 +2,15 @@
 
 We fuzz with feeds.
 
+Want to follow a Twitter user in your RSS feeds?
+
+Want to mix people from Activity pub?
+
+Want to fetch previews on that RSS feed which annoyingly
+doesn't include previews when they link something?
+
+That kind of thing is what this does.
+
 
 ## Install 
 
@@ -11,8 +20,9 @@ Clone into your web-root, ideally in a directory called
 Copy secrets_template.php to secrets.php and then edit
 it so it knows where it lives and stuff.
 
-Make sure cache directory exists and is writable by
-the web-server (probably Apache? I'm using Apache)
+Make sure cache directory exists and is writeable by
+the web-server (probably Apache? I'm using Apache,
+you may need mad skillz to make it run elsewhere)
 
 Run composer to fetch the dependencies.
 
@@ -22,8 +32,9 @@ Run composer to fetch the dependencies.
 
 ## Use
 
-You added it in yourwebsite.com/fudz/ then say you
-want an RSS feed of a twitter user, you just use
+If you added it in yourwebsite.com/fudz/ then, 
+say you want an RSS feed of a mastodon user, 
+you just use
 
 ```
 yourwebsite.com/fudz/mastou/boing.world/pre
@@ -37,11 +48,16 @@ Or if you wanna follow me on Twitter you can use
 yourwebsite.com/fudz/twitteru/revpriest
 ```
 
+And if you edit those URLs to different mastodon
+hosts or twitter usernames you can get feeds for
+different people.
 
 Edit the secrets.php to make sure you add your
 RSS reader's IP addresses and avoid running some
 kinda open relay that could fill up your cache
 if everyone was using it.
+
+Keep an eye on that cache size in general in fact.
 
 
 ## Troubleshooting
