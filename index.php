@@ -49,8 +49,9 @@ $nitterInstances = [
 
 
 //You can have a default path so you can run a CLI test
-#$path = $homepath."feed/https/boing.world/@pre.rss";
-$path = $homepath."twitteru/revpriest";
+$path = $homepath."feed/https/boing.world/@pre.rss";
+#$path = $homepath."twitteru/revpriest";
+#$path = $homepath."mastou/boing.world/pre";
 if(isset($_SERVER['REQUEST_URI'])){
   $path = $_SERVER['REQUEST_URI'];
 }
@@ -215,7 +216,7 @@ function processFeed($http,$host,$path){
 		  for($i=$numItems-1;$i>=0;$i--){
 			  $item = $pageData->channel->item[$i];
 				if($item){
-					$ititle = mb_convert_encoding(trim($item->title), 'UTF-8', 'UTF-8');
+					$ititle = mb_convert_encoding(trim($item->pubDate), 'UTF-8', 'UTF-8');
 					$desc = mb_convert_encoding(trim($item->description), 'UTF-8', 'UTF-8');
 
 					$outItem = new RSSItem();
@@ -323,11 +324,12 @@ function processMastodonUser($host,$user){
 			$pageDesc = mb_convert_encoding(trim($pageData->channel->description), 'UTF-8', 'UTF-8');
 			$pageDesc.=" only with previews fetched for each page";
 			$outFeed->setDescription($pageDesc);
+	    $outFeed->setLink("https://$myHome/mastou/$host/$user");
 		  $numItems = sizeof($pageData->channel->item);
 		  for($i=$numItems-1;$i>=0;$i--){
 			  $item = $pageData->channel->item[$i];
 				if($item){
-					$ititle = mb_convert_encoding(trim($item->title), 'UTF-8', 'UTF-8');
+					$ititle = mb_convert_encoding(trim($item->pubDate), 'UTF-8', 'UTF-8');
 					$desc = mb_convert_encoding(trim($item->description), 'UTF-8', 'UTF-8');
 
 					$linkedPage = trim($item->link);
