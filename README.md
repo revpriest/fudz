@@ -48,7 +48,19 @@ Or if you wanna follow me on Twitter you can use
 yourwebsite.com/fudz/twitteru/revpriest
 ```
 
-And if you edit those URLs to different mastodon
+Or if you wanna follow my Rumble channel you can use
+
+```
+yourwebsite.com/fudz/rumbleu/starshipsd
+```
+
+There's also one for Rumble Channels but I don't
+think I have one of those, you might have to be
+important like Russell Brand.
+
+---
+
+If you edit those URLs to different mastodon
 hosts or twitter usernames you can get feeds for
 different people.
 

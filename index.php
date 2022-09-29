@@ -33,7 +33,7 @@ $homepath="/fudz/";
 $allowedIps = [];
 
 //You may allow some paths to be viewed even by other IPS.
-$whitelistPaths = ["twitteru/revpriest","mastou/boing.world/pre","feed/https/boing.world/@pre.rss"];
+$whitelistPaths = ["rumbleu/starshipsd","twitteru/revpriest","mastou/boing.world/pre","feed/https/boing.world/@pre.rss"];
 
 //If you rewrite twitter URLS to nitter, share the load.
 $nitterInstances = [
@@ -49,9 +49,11 @@ $nitterInstances = [
 
 
 //You can have a default path so you can run a CLI test
-$path = $homepath."feed/https/boing.world/@pre.rss";
+#$path = $homepath."feed/https/boing.world/@pre.rss";
 #$path = $homepath."twitteru/revpriest";
 #$path = $homepath."mastou/boing.world/pre";
+$path = $homepath."rumbleu/starshipsd";
+#$path = $homepath."rumblec/russellbrand";
 if(isset($_SERVER['REQUEST_URI'])){
   $path = $_SERVER['REQUEST_URI'];
 }
@@ -122,6 +124,14 @@ switch($type){
   case "twitteru":
 		$user = array_shift($bits);
     print processTwitterUser($user);
+	  return;
+  case "rumblec":
+		$user = array_shift($bits);
+    print processRumbleChannel($user);
+	  return;
+  case "rumbleu":
+		$user = array_shift($bits);
+    print processRumbleChannel("user/".$user);
 	  return;
   case "mastou":
   case "mastodonu":
@@ -406,6 +416,49 @@ function processFeedWithPreview($http,$host,$path){
 	}
   return "<h1>Dunno how to decode $host data at $path.</h1>\n<pre>".htmlspecialchars($pageContent)."</pre>";
 }
+
+
+
+/**
+* Process a rumble channel
+*/
+function processRumbleChannel($user){
+	global $myHome;
+	$outFeed = new RSS();
+	$outFeed->setTitle("$user Rumble Channel");
+	$outFeed->setDescription("$user Rumble Channel, an RSS feed made by scraping the HTML");
+	$outFeed->setLink("https://$myHome/rumblec/$user");
+
+	$url =  "https://rumble.com/$user";
+	$pageData = cache_fetch($url);
+	if($pageData!=null){
+		$i=0;
+		foreach(explode("\n",$pageData) as $line){
+			if(preg_match("|<article class\=video-item><h3 class\=video-item--title>(.*)</h3><a class=video-item--a href=(.*)><img class=video-item--img src=(.*) alt=\"(.*)\"></a><footer.*video-item--duration data-value=([^>]*)>.*datetime=(.*):00>.*<\/article>|",$line,$reg)){
+				$title = htmlspecialchars($reg[1]);
+				$url = htmlspecialchars($reg[2]);
+				$img = htmlspecialchars($reg[3]);
+				$alt = htmlspecialchars($reg[4]);
+				$len = htmlspecialchars($reg[5]);
+				$time = htmlspecialchars($reg[6].":00");
+				$text = "New Video From $user - $title:<br/><a href=\"$url\"><img src=\"$img\"></img></a><br/>Length: $len";
+
+				$outItem = new RSSItem();
+				$outItem->setPublished(trim(date("D, d M Y H:i:s O", strtotime($time))));
+
+				$outItem->setTitle($title);
+				$outItem->setGuid($url);
+				$outItem->setLink($url);
+				$outItem->setDescription($text);
+				$outFeed->setItem($outItem);
+				$i++;
+		  }
+	  }
+		return $outFeed->render();
+	}
+  return "<h1>No Data For Rumble User $user</h1>\n<pre>".htmlspecialchars($pageContent)."</pre>";
+}
+
 
 
 
