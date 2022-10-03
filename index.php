@@ -441,7 +441,7 @@ function processRumbleChannel($user){
 				$alt = htmlspecialchars($reg[4]);
 				$len = htmlspecialchars($reg[5]);
 				$time = htmlspecialchars($reg[6].":00");
-				$text = "New Video From $user - $title:<br/><a href=\"$url\"><img src=\"$img\"></img></a><br/>Length: $len";
+				$text = "New Video From $user - $title:<br/><a href=\"https://rumble.com$url\"><img src=\"$img\"></img></a><br/>Length: $len";
 
 				$outItem = new RSSItem();
 				$outItem->setPublished(trim(date("D, d M Y H:i:s O", strtotime($time))));
