@@ -74,14 +74,14 @@ Keep an eye on that cache size in general in fact.
 
 ## Troubleshooting
 
-Have you checked that apache allows the .htaccess allows all
-the things it tries to do?
+Have you checked that the .htaccess allows apache to read all
+the things it tries to read?
 
 Have you checked the cache directory is writeable?
 
 Have you fetched the dependencies with composer?
 
-Can you tried running from to command line to check for
-any errors?
+Can you try running from the command line to check for
+any errors printed to console?
 
 

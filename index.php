@@ -50,9 +50,9 @@ $nitterInstances = [
 
 //You can have a default path so you can run a CLI test
 #$path = $homepath."feed/https/boing.world/@pre.rss";
-#$path = $homepath."twitteru/revpriest";
+$path = $homepath."twitteru/revpriest";
 #$path = $homepath."mastou/boing.world/pre";
-$path = $homepath."rumbleu/starshipsd";
+#$path = $homepath."rumbleu/starshipsd";
 #$path = $homepath."rumblec/russellbrand";
 if(isset($_SERVER['REQUEST_URI'])){
   $path = $_SERVER['REQUEST_URI'];
@@ -447,8 +447,8 @@ function processRumbleChannel($user){
 				$outItem->setPublished(trim(date("D, d M Y H:i:s O", strtotime($time))));
 
 				$outItem->setTitle($title);
-				$outItem->setGuid($url);
-				$outItem->setLink($url);
+				$outItem->setGuid("https://rumble.com$url");
+				$outItem->setLink("https://rumble.com$url");
 				$outItem->setDescription($text);
 				$outFeed->setItem($outItem);
 				$i++;
