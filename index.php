@@ -50,9 +50,9 @@ $nitterInstances = [
 
 //You can have a default path so you can run a CLI test
 #$path = $homepath."feed/https/boing.world/@pre.rss";
-$path = $homepath."twitteru/revpriest";
+#$path = $homepath."twitteru/revpriest";
 #$path = $homepath."mastou/boing.world/pre";
-#$path = $homepath."rumbleu/starshipsd";
+$path = $homepath."rumbleu/starshipsd";
 #$path = $homepath."rumblec/russellbrand";
 if(isset($_SERVER['REQUEST_URI'])){
   $path = $_SERVER['REQUEST_URI'];
@@ -183,11 +183,11 @@ function cache_fetch_twitter($url){
 * Fetch a url, only if there's a version in the cache don't
 * bother going to the web for it, use the cache
 */
-function cache_fetch($url){
+function cache_fetch($url,$cacheLength=10*60){
   $hash = md5($url);
 	$dir = "cache/".substr($hash,0,2)."/".substr($hash,2,2);
   $fn = $dir."/".$hash.".cache";
-	if((file_exists($fn)) && ((time()-filemtime($fn) < 10 * 60))){
+	if((file_exists($fn)) && ((time()-filemtime($fn) < $cacheLenght))){
 	  $content=file_get_contents($fn);
 	}else{
 		$content = file_get_contents($url);
@@ -430,7 +430,7 @@ function processRumbleChannel($user){
 	$outFeed->setLink("https://$myHome/rumblec/$user");
 
 	$url =  "https://rumble.com/$user";
-	$pageData = cache_fetch($url);
+	$pageData = cache_fetch($url,60*60*8);    //They blocked me, presumably for too-frequent polling? Unblocked now. Lets try once every 8 hours.
 	if($pageData!=null){
 		$i=0;
 		foreach(explode("\n",$pageData) as $line){
