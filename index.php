@@ -39,7 +39,7 @@ $whitelistPaths = ["rumbleu/starshipsd","twitteru/revpriest","mastou/boing.world
 $nitterInstances = [
 //  "nitter.net",			//Removed, always overloaded.
   "nitter.42l.fr",
-  "nitter.pussthecat.org",
+//  "nitter.pussthecat.org",    //Removed, dead.
   "nitter.fdn.fr",
   "nitter.1d4.us",
   "nitter.kavin.rocks",
